@@ -13,6 +13,11 @@
     text {
         font: 10px sans-serif;
     }
+    .chartTitle{
+        text-align: center;
+        font-weight: bold;
+        margin-top: 20px
+    }
 
     .axis path,
     .axis line {
@@ -91,26 +96,27 @@
 <script>
 
     var data = {
+        title:"Hardware Distribution",
         labels: [
-            'resilience', 'maintainability', 'accessibility',
-            'uptime', 'functionality', 'impact'
+            'North', 'West', 'South',
+            'West', 'Center'
         ],
         series: [
             {
-                label: '2012',
-                values: [4, 8, 15, 16, 23, 42]
+                label: 'Phone',
+                values: [4, 8, 15, 16, 23]
             },
             {
-                label: '2013',
-                values: [12, 43, 22, 11, 73, 25]
+                label: 'Tablets',
+                values: [12, 43, 22, 11, 73]
             },
             {
-                label: '2014',
-                values: [31, 28, 14, 8, 15, 21]
+                label: 'Notebooks',
+                values: [31, 28, 14, 8, 15]
             },
             {
-                label: '2015',
-                values: [42, 32, 10, 14, 50, 44]
+                label: 'Desktops',
+                values: [42, 32, 10, 14, 50]
             }
         ]
     };
@@ -175,7 +181,7 @@
         show: function (d, i) {
             var currentElem = this,
                     tooltipX = Number(currentElem.getAttribute("x")) + Number(currentElem.getAttribute("width")) + 16 + spaceForLabels,
-                    tooltipY = Number(currentElem.getAttribute("y")) + Number(currentElem.getAttribute("height") - 2);
+                    tooltipY = Number(currentElem.getAttribute("y")) + Number(currentElem.getAttribute("height")) +10;
             tooltipElem.html("<span style='font-size: 11px'>" + data.labels[d.x] + "</span> <br><div style='margin-top: 2px' ><div class='tooltip-series-color' style='color:" + d.color + " '>●</div>" + d.series + ": <strong>" + d.y + "</strong></div>");
             tooltipElem.attr("style", "left:" + tooltipX + "px;top:" + tooltipY + "px;display:block");
         },
@@ -183,6 +189,13 @@
             tooltipElem.attr("style", "display:none");
         }
     }
+
+        d3.select('body')
+        .append("div")
+        .attr("style","width:"+ (width + margin.left + margin.right + spaceForLabels + spaceForLegend +"px  "))
+        .attr("class","chartTitle")
+        .html(data.title);
+
 
     var svg = d3.select("body").append("svg")
             .attr("width", width + margin.left + margin.right + spaceForLabels + spaceForLegend)
