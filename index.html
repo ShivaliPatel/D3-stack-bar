@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+    body {
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        margin: auto;
+        position: relative;
+        width: 960px;
+        background-color: #FAFAFA;
+    }
+
+    text {
+        font: 10px sans-serif;
+    }
+
+    .axis path,
+    .axis line {
+        fill: none;
+        stroke: #dadada;
+        shape-rendering: crispEdges;
+    }
+
+    .barChartLabels .label {
+        fill: black;
+        font: 14px sans-serif;
+        text-anchor: end;
+    }
+
+    .d3-tip {
+        line-height: 1;
+        padding: 12px;
+        background: rgb(230, 230, 230);
+        color: #000;
+        border: 1px solid #dadada;
+    }
+
+    .arrow_box_left:after, .arrow_box_left:before {
+        border: solid transparent;
+        content: " ";
+        height: 0;
+        width: 0;
+        position: absolute;
+        pointer-events: none;
+        opacity: 0.9;
+    }
+
+    .arrow_box_left:after {
+        border-color: rgba(136, 183, 213, 0);
+        border-right-color: #fff;
+        top: 50%;
+        border-width: 6px;
+        margin-top: -7px;
+        left: -11px;
+
+    }
+
+    .arrow_box_left:before {
+        border-color: rgba(194, 225, 245, 0);
+        border-right-color: #dadada;
+        top: calc(50% + 2px);
+        border-width: 6px;
+        margin-top: -9px;
+        left: -12px
+    }
+
+    .tooltip-series-color {
+        margin-right: 2px;
+        float: left;
+        margin-top: -1px;
+    }
+
+    .bar:hover {
+        /*fill: transparent;*/
+    }
+
+    .tooltip {
+        position: absolute;
+        background-color: #FFFFFF;
+        padding: 3px 10px;
+        opacity: 0.9;
+        border-radius: 3px;
+        border: 1px solid #dadada;
+        box-shadow: 1px 1px rgba(158, 158, 158, 0.39);
+        font-size: 13px;
+        display: none;
+    }
+</style>
+<body>
+<script src="bower_components/d3/d3.min.js"></script>
+<script>
+
+    var data = {
+        labels: [
+            'resilience', 'maintainability', 'accessibility',
+            'uptime', 'functionality', 'impact'
+        ],
+        series: [
+            {
+                label: '2012',
+                values: [4, 8, 15, 16, 23, 42]
+            },
+            {
+                label: '2013',
+                values: [12, 43, 22, 11, 73, 25]
+            },
+            {
+                label: '2014',
+                values: [31, 28, 14, 8, 15, 21]
+            },
+            {
+                label: '2015',
+                values: [42, 32, 10, 14, 50, 44]
+            }
+        ]
+    };
+
+
+    var yAxisData = [];
+    for (var i = 0; i < data.series.length; i++) {
+        var temp = [];
+        for (var j = 0; j < data.series[i].values.length; j++) {
+            temp.push({x: j, y: data.series[i].values[j], series: data.series[i].label});
+        }
+        yAxisData.push(temp);
+    }
+
+    var stack = d3.layout.stack(),
+            layers = stack(d3.range(yAxisData.length).map(function (i) {
+                return yAxisData[i];
+            })),
+            yStackMax = d3.max(layers, function (layer) {
+                return d3.max(layer, function (d) {
+                    return d.y0 + d.y;
+                });
+            });
+
+    var addColorToSeries = function () {
+        for (var i = 0; i < yAxisData.length; i++) {
+            for (var j = 0; j < yAxisData[i].length; j++) {
+                yAxisData[i][j].color = color(i);
+            }
+        }
+    }
+
+    var margin = {top: 40, right: 10, bottom: 20, left: 10},
+            width = 500 - margin.left - margin.right,
+            height = 350 - margin.top - margin.bottom,
+            spaceForLabels = 150,
+            spaceForLegend = 150,
+            gapBetweenGroups = 10,
+            legendRectSize = 18,
+            legendSpacing = 4;
+
+    var x = d3.scale.ordinal()
+                    .domain(d3.range(yAxisData[0].length))
+                    .rangeRoundBands([0, height], .08),
+            y = d3.scale.linear()
+                    .domain([0, yStackMax])
+                    .range([width, 0]),
+            color = d3.scale.linear()
+                    .domain([0, yAxisData.length - 1])
+                    .range(["#F2EFBD", "#2F6D7A"]),
+            yAxis = d3.svg.axis()
+                    .scale(y)
+                    .tickFormat('')
+                    .tickSize(0)
+                    .orient("left"),
+            tooltipElem;
+
+
+    addColorToSeries();
+
+    var tooltip = {
+        show: function (d, i) {
+            var currentElem = this,
+                    tooltipX = Number(currentElem.getAttribute("x")) + Number(currentElem.getAttribute("width")) + 16 + spaceForLabels,
+                    tooltipY = Number(currentElem.getAttribute("y")) + Number(currentElem.getAttribute("height") - 2);
+            tooltipElem.html("<span style='font-size: 11px'>" + data.labels[d.x] + "</span> <br><div style='margin-top: 2px' ><div class='tooltip-series-color' style='color:" + d.color + " '>●</div>" + d.series + ": <strong>" + d.y + "</strong></div>");
+            tooltipElem.attr("style", "left:" + tooltipX + "px;top:" + tooltipY + "px;display:block");
+        },
+        hide: function (d, i, event) {
+            tooltipElem.attr("style", "display:none");
+        }
+    }
+
+    var svg = d3.select("body").append("svg")
+            .attr("width", width + margin.left + margin.right + spaceForLabels + spaceForLegend)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+    tooltipElem = d3.select("body").append("div")
+            .attr("class", "tooltip arrow_box_left");
+
+    var barChartGroup = svg
+            .append("g")
+            .attr("class", "barChartGroup")
+            .attr("transform", function () {
+                return "translate(" + spaceForLabels + ",0)";
+            })
+    var barChartLabels = svg
+            .append("g")
+            .attr("class", "barChartLabels");
+
+
+    var layer = barChartGroup.selectAll('.layer')
+            .data(layers)
+            .enter()
+            .append("g")
+            .attr("class", "layer")
+            .style("fill", function (d, i) {
+                return color(i);
+            });
+
+    var rect = layer.selectAll("rect")
+            .data(function (d) {
+                return d;
+            })
+            .enter()
+            .append("rect")
+            .attr("y", function (d) {
+                return x(d.x);
+            })
+            .attr("x", function (d) {
+                return width - y(d.y0);
+            })
+            .attr("width", function (d) {
+                return y(d.y0) - y(d.y0 + d.y);
+            })
+            .attr("height", x.rangeBand())
+            .attr("class", "bar")
+            .on('mouseover', tooltip.show)
+            .on('mouseout', tooltip.hide);
+
+    // Draw labels
+    barChartLabels.selectAll("text")
+            .data(data.labels)
+            .enter()
+            .append("text")
+            .attr("class", "label")
+            .attr("x", function (d) {
+                return spaceForLabels - 20;
+            })
+            .attr("y", function (d, i) {
+                return x(i) + x.rangeBand() / 2;
+            })
+            .attr("dy", ".35em")
+            .text(function (d, i) {
+                return d;
+            });
+
+    svg.append("g")
+            .attr("class", "axis")
+            .attr("transform", "translate(" + spaceForLabels + ", " + -gapBetweenGroups / 2 + ")")
+            .call(yAxis);
+
+
+    var legend = svg.selectAll('.legend')
+            .data(data.series)
+            .enter()
+            .append('g')
+            .attr('transform', function (d, i) {
+                var height = legendRectSize + legendSpacing;
+                var offset = -gapBetweenGroups / 2;
+                var horz = spaceForLabels + width + 40 - legendRectSize;
+                var vert = i * height - offset;
+                return 'translate(' + horz + ',' + vert + ')';
+            });
+
+    legend.append('rect')
+            .attr('width', legendRectSize)
+            .attr('height', legendRectSize)
+            .style('fill', function (d, i) {
+                return color(i);
+            })
+            .style('stroke', function (d, i) {
+                return color(i);
+            });
+
+    legend.append('text')
+            .attr('class', 'legend')
+            .attr('x', legendRectSize + legendSpacing)
+            .attr('y', legendRectSize - legendSpacing)
+            .text(function (d) {
+                return d.label;
+            });
+</script>
+</body>
